@@ -1,9 +1,25 @@
 # ROBUSTNESS
 
-## Paper
-Title: [PAPER TITLE HERE] <!--(PAPER_LINK_HERE) -->
+## License
 
-[ABSTRACT PLACEHOLDER]
+Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+## References
+[1] Wang, Yubo, et al. "Mmlu-pro: A more robust and challenging multi-task language understanding benchmark." arXiv preprint arXiv:2406.01574 (2024).
+
+[2] Zhong, Wanjun, et al. "Agieval: A human-centric benchmark for evaluating foundation models." arXiv preprint arXiv:2304.06364 (2023).
 
 
 ## Citation
@@ -34,7 +50,7 @@ Both `robustness_mmlu_pro` and `robustness_agieval` contain the following 3 task
 
 ### Option format robustness
 
-Measures the model's robustness towards the following option formats:
+Measures the model's robustness to the following option formats:
 <br>
 - Uppercase latter + colon (`A: option_1` `B: option_2` ... )
 - Uppercase latter + parenthesis (`A) option_1` `B) option_2` ... )
@@ -45,11 +61,11 @@ Measures the model's robustness towards the following option formats:
 
 ### Option order robustness
 
-Measures the model's robustness towards the placment of the correct answer in the options list by swapping the correct answer with all the other possible options.
+Measures the model's robustness to the placment of the correct answer in the options list by swapping the correct answer with all the other possible options.
 
 ### Prompt robustness
 
-Measures the model's robustness towards 10 different prompts. list of the prompts can be found in the `./prompt_templates.json` file under the key `prompt_robustness`.
+Measures the model's robustness to 10 different prompts. list of the prompts can be found in the `./prompt_templates.json` file under the key `prompt_robustness`.
 
 ### Fewshot Prompt robustness
 

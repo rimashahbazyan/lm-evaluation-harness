@@ -9,28 +9,28 @@ task:
   - option_format_robustness_agieval_sat_math
 
 aggregate_metric_list:
-  - metric: prompt_0_macro_accuracy
+  - metric: 0_macro_accuracy
     aggregation: mean
     weight_by_size: false
-  - metric: prompt_1_macro_accuracy
+  - metric: 1_macro_accuracy
     aggregation: mean
     weight_by_size: false
-  - metric: prompt_2_macro_accuracy
+  - metric: 2_macro_accuracy
     aggregation: mean
     weight_by_size: false
-  - metric: prompt_3_macro_accuracy
+  - metric: 3_macro_accuracy
     aggregation: mean
     weight_by_size: false
-  - metric: prompt_4_macro_accuracy
+  - metric: 4_macro_accuracy
     aggregation: mean
     weight_by_size: false
-  - metric: prompt_5_macro_accuracy
+  - metric: 5_macro_accuracy
     aggregation: mean
     weight_by_size: false
-  - metric: prompt_6_macro_accuracy
+  - metric: 6_macro_accuracy
     aggregation: mean
     weight_by_size: false
-  - metric: prompt_consistency_rate
+  - metric: consistency_rate
     aggregation: mean
     weight_by_size: true
 metadata:

@@ -184,11 +184,32 @@ class ManualSampler(ContextSampler):
 
 
 class FilteringSampler(ContextSampler):
+    """
+    Draw random `n` samples from the fewshot docs, but only those that match the filters provided.
+    filters should be a list of fields(type: string) that must match the fewshot docs.
+
+    Throws: ValueError if a filter is not present in the fewshot docs.
+    """
     def __init__(self, docs, task, fewshot_indices=None, rnd=None, filters=[]) -> None:
+         """
+        Args: 
+            docs: the fewshot docs to sample from.
+            task: the task object.
+            fewshot_indices: indices of the fewshot docs to sample from.
+            rnd: random.Random object.
+            filters: list of fields that must match the fewshot docs.
+         """
          super().__init__(docs, task, fewshot_indices, rnd)
          self.filters = filters
     
     def get_context(self, doc, num_fewshot):
+        """
+        The same as the parent class, but only samples from the fewshot docs that match the filters.
+        Args:
+            doc: the document to evaluate on.
+            num_fewshot: the number of fewshot examples to return.
+        Returns: a string of labeled examples.
+        """
         for filter in self.filters:
             if filter not in doc:
                 raise ValueError(f"Document {doc} does not have a '{filter}' field you cannot use FlteringSampler")
@@ -235,6 +256,13 @@ class FilteringSampler(ContextSampler):
         num_fewshot,
         fewshot_as_multiturn: bool = False,
     ):
+        """
+        The same as the parent class, but only samples from the fewshot docs that match the filters.
+        Args:
+            doc: the document to evaluate on.
+            num_fewshot: the number of fewshot examples to return.
+        Returns: a list of chat history, where each turn is a dict with keys "role" and "content".
+        """
         chat_history = []
         # draw an extra fewshot sample if using same split as evaluating on
         for filter in self.filters:
@@ -290,7 +318,7 @@ class FilteringSampler(ContextSampler):
         
     def sample(self, n, filters):
         """
-        Draw `n` samples from our fewshot docs. This method should be overridden by subclasses.
+        Draw `n` samples from our fewshot docs.
         """
         docs = [doc for doc in self.docs if all(doc[f_key] == f_val for f_key, f_val in filters.items())]
         return self.rnd.sample(docs, n)
