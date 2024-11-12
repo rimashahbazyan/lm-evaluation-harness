@@ -1,5 +1,4 @@
 from functools import partial
-
 import datasets
 
 
@@ -184,9 +183,151 @@ class ManualSampler(ContextSampler):
         pass
 
 
+class FilteringSampler(ContextSampler):
+    """
+    Draw random `n` samples from the fewshot docs, but only those that match the filters provided.
+    filters should be a list of fields(type: string) that must match the fewshot docs.
+
+    Throws: ValueError if a filter is not present in the fewshot docs.
+    """
+    def __init__(self, docs, task, fewshot_indices=None, rnd=None, filters=[]) -> None:
+         """
+        Args: 
+            docs: the fewshot docs to sample from.
+            task: the task object.
+            fewshot_indices: indices of the fewshot docs to sample from.
+            rnd: random.Random object.
+            filters: list of fields that must match the fewshot docs.
+         """
+         super().__init__(docs, task, fewshot_indices, rnd)
+         self.filters = filters
+    
+    def get_context(self, doc, num_fewshot):
+        """
+        The same as the parent class, but only samples from the fewshot docs that match the filters.
+        Args:
+            doc: the document to evaluate on.
+            num_fewshot: the number of fewshot examples to return.
+        Returns: a string of labeled examples.
+        """
+        for filter in self.filters:
+            if filter not in doc:
+                raise ValueError(f"Document {doc} does not have a '{filter}' field you cannot use FlteringSampler")
+        
+        filter_dict = {filter: doc[filter] for filter in self.filters}
+        # draw an extra fewshot sample if using same split as evaluating on
+        n_samples = (
+            num_fewshot + 1
+            if self.config.fewshot_split == self.config.test_split
+            else num_fewshot
+        )
+
+        # draw `n_samples` docs from fewshot_docs
+        fewshotex = self.sample(n_samples, filter_dict)
+
+        # get rid of the doc that's the one we're evaluating, if it's in the fewshot
+        # TODO: should we just stop people from using fewshot from same split as evaluating?
+        selected_docs = [x for x in fewshotex if x != doc][:num_fewshot]
+
+        labeled_examples = ""
+        for doc in selected_docs:
+            doc_content = self.doc_to_text(doc)
+            doc_target = self.doc_to_target(doc)
+            labeled_examples += (
+                doc_content
+                if self.config.doc_to_choice is None or isinstance(doc_content, str)
+                else self.doc_to_choice(doc)[doc_content]
+            )
+            labeled_examples += self.target_delimiter
+            labeled_examples += (
+                str(doc_target[0])
+                if isinstance(doc_target, list)
+                else str(doc_target)
+                if self.config.doc_to_choice is None or isinstance(doc_target, str)
+                else str(self.doc_to_choice(doc)[doc_target])
+            )
+            labeled_examples += self.fewshot_delimiter
+
+        return labeled_examples
+
+    def get_chat_context(
+        self,
+        doc,
+        num_fewshot,
+        fewshot_as_multiturn: bool = False,
+    ):
+        """
+        The same as the parent class, but only samples from the fewshot docs that match the filters.
+        Args:
+            doc: the document to evaluate on.
+            num_fewshot: the number of fewshot examples to return.
+        Returns: a list of chat history, where each turn is a dict with keys "role" and "content".
+        """
+        chat_history = []
+        # draw an extra fewshot sample if using same split as evaluating on
+        for filter in self.filters:
+            if filter not in doc:
+                raise ValueError(f"Document {doc} does not have a '{filter}' field you cannot use FlteringSampler")
+        
+        filter_dict = {filter: doc[filter] for filter in self.filters}
+        
+        n_samples = (
+            num_fewshot + 1
+            if self.config.fewshot_split == self.config.test_split
+            else num_fewshot
+        )
+        # draw `n_samples` docs from fewshot_docs
+        fewshotex = self.sample(n_samples, filter_dict)
+
+        # get rid of the doc that's the one we're evaluating, if it's in the fewshot
+        # TODO: should we just stop people from using fewshot from same split as evaluating?
+        selected_docs = [x for x in fewshotex if x != doc][:num_fewshot]
+
+        if fewshot_as_multiturn:
+            for doc in selected_docs:
+                doc_content = self.doc_to_text(doc)
+                doc_target = self.doc_to_target(doc)
+                chat_history.append(
+                    {
+                        "role": "user",
+                        "content": doc_content
+                        if self.config.doc_to_choice is None
+                        or isinstance(doc_content, str)
+                        else self.doc_to_choice(doc)[doc_content],
+                    }
+                )
+                chat_history.append(
+                    {
+                        "role": "assistant",
+                        "content": str(doc_target[0])
+                        if isinstance(doc_target, list)
+                        else doc_target
+                        if self.config.doc_to_choice is None
+                        or isinstance(doc_target, str)
+                        else str(self.doc_to_choice(doc)[doc_target]),
+                    }
+                )
+        else:
+            # get fewshot context as one user turn
+            chat_history.append(
+                {"role": "user", "content": self.get_context(doc, num_fewshot)}
+            )
+
+        return chat_history
+
+        
+    def sample(self, n, filters):
+        """
+        Draw `n` samples from our fewshot docs.
+        """
+        docs = [doc for doc in self.docs if all(doc[f_key] == f_val for f_key, f_val in filters.items())]
+        return self.rnd.sample(docs, n)
+
+
 SAMPLER_REGISTRY = {
     "default": ContextSampler,
     "first_n": FirstNSampler,
+    "filtering": FilteringSampler,
 }
 
 
