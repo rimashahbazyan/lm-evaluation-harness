@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
+import sys
 from functools import partial
 from typing import Any, Dict, List
 
 import numpy as np
+from datasets import Dataset
 
 from lm_eval.tasks.score import utils
 from lm_eval.tasks.score.utils import prompt_consistency_rate, robustness_doc_to_text
@@ -54,6 +57,71 @@ non_greedy_robustness_process_docs = partial(
     template_file_path=TEMPLATE_FILE_PATH,
     templates_key=NON_GREEDY_ROBUSTNESS_TEMPLATE_KEY,
 )
+
+
+def binary_robustness_process_docs(
+    doc: Dataset,
+    dataset_specific_preprocess: callable = None,
+) -> Dataset:
+    try:
+        with open(TEMPLATE_FILE_PATH) as f:
+            prompt_templates = json.load(f)["binary_robustness"]
+    except FileNotFoundError:
+        eval_logger.error("Prompt templates not found")
+        sys.exit()
+    if dataset_specific_preprocess is not None:
+        doc = dataset_specific_preprocess(doc)
+
+    def process(batched_docs):
+        initial_len = len(next(iter(batched_docs.values())))
+        keys = list(batched_docs.keys())
+        new_batched_docs = {key: [] for key in keys}
+        new_batched_docs["prompt"] = []
+        new_batched_docs["answer_format"] = []
+        new_batched_docs["option_ind"] = []
+        new_batched_docs["is_true"] = []
+
+        for doc_ind in range(initial_len):
+            for option_ind in range(len(batched_docs["options"][doc_ind])):
+                new_batched_docs["prompt"].append(prompt_templates["prompt"])
+                new_batched_docs["answer_format"].append(
+                    prompt_templates["answer_format"]
+                )
+                new_batched_docs["option_ind"].append(option_ind)
+                new_batched_docs["is_true"].append(
+                    option_ind == batched_docs["answer_index"][doc_ind]
+                )
+                for key in keys:
+                    new_batched_docs[key].append(batched_docs[key][doc_ind])
+        return new_batched_docs
+
+    return doc.map(process, batched=True)
+
+
+def binary_robustness_doc_to_text(doc: Dataset) -> str:
+    prompt = doc["prompt"]
+    answer_format = doc.get("answer_format", "")
+    question = doc["question"]
+    catrgory = doc.get("category", "")
+    answer = answer_format.format(answer=doc["options"][doc["option_ind"]])
+    return prompt.format(question=question, answer=answer, category=catrgory)
+
+
+def binary_robustness_process_results(doc, results) -> Dict[str, float]:
+    answer = results[0].lower()
+    answer = answer.split("the answer is ")[-1]
+    # select thr first word after "the answer is" without punctuation.
+    answer = answer.split()[0].strip(".,!?")
+    is_true = doc["is_true"]
+    output = 0
+    if is_true:
+        output = int(answer == "correct")
+    else:
+        output = int(answer == "incorrect")
+
+    question_id = doc["question_id"]
+
+    return {"binary_accuracy": (question_id, results[0], answer, output)}
 
 
 def non_greedy_robustness_process_results(doc, results) -> Dict[str, float]:
@@ -135,6 +203,15 @@ def per_prompt_macro_accuracy(results: List[Dict[str, Any]], p_id=0) -> float:
         )
 
     return np.round(np.mean([v for v in accuracies.values()]), 4)
+
+
+def binary_accuracy(results: List[Dict[str, Any]]) -> float:
+    accuracies = []
+    for result in results:
+        question_id, complete_answer, answer, output = result
+        accuracies.append(output)
+
+    return np.round(np.mean(accuracies), 4)
 
 
 per_prompt_accuracy_0 = partial(per_prompt_macro_accuracy, p_id=0)

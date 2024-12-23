@@ -9,6 +9,11 @@
         "options_format": "\n{letter}: {option}"
     },
 
+    "binary_robustness":{
+        "prompt": "For the question related to {category}, is the provided answer correct?.\n\nQuestion:{question}{answer}\n\nEnd the answer with the following:\nThe answer is [correct/incorrect].",
+        "answer_format": "\nAnswer: {answer}"
+    },
+
     "prompt_robustness": [
             {
                 "prompt": "{question}{options}\nExamine the question and choose the correct answer from the options 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I' or 'J'. End your answer with:\nThe best answer is [the_answer_letter].\nwhere the [the_answer_letter] is a letter from A to J.",
