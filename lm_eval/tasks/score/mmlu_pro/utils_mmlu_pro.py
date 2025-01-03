@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import json
 import os
 import sys
@@ -93,6 +94,37 @@ def binary_robustness_process_docs(
                 )
                 for key in keys:
                     new_batched_docs[key].append(batched_docs[key][doc_ind])
+        return new_batched_docs
+
+    return doc.map(process, batched=True)
+
+
+def no_answer_robustness_process_docs(
+    doc: Dataset,
+    dataset_specific_preprocess: callable = None,
+) -> Dataset:
+    try:
+        with open(TEMPLATE_FILE_PATH) as f:
+            prompt_template = json.load(f)["no_answer_robustness"]
+            prompt = prompt_template["prompt"]
+            options_format = prompt_template.get("options_format", None)
+    except FileNotFoundError:
+        eval_logger.error("Prompt templates not found")
+        sys.exit()
+
+    if dataset_specific_preprocess is not None:
+        doc = dataset_specific_preprocess(doc)
+
+    def process(batched_docs):
+        initial_len = len(next(iter(batched_docs.values())))
+        new_batched_docs = copy.deepcopy(batched_docs)
+        new_batched_docs["prompt"] = [prompt] * initial_len
+        if options_format is not None:
+            new_batched_docs["options_format"] = [options_format] * initial_len
+        for i, opts in zip(
+            new_batched_docs["answer_index"], new_batched_docs["options"]
+        ):
+            opts[i] = "None of the answers is correct."
         return new_batched_docs
 
     return doc.map(process, batched=True)
