@@ -27,8 +27,8 @@ from datasets import Dataset
 from lm_eval.utils import eval_logger
 
 
-NUMERALS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
+NUMERALS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]
+ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI"]
 
 
 def __repeat_elements(lst, n):

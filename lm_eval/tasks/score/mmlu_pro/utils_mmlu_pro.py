@@ -35,7 +35,7 @@ NON_GREEDY_ROBUSTNESS_TEMPLATE_KEY = "non_greedy_robustness"
 
 QUESTION_KEY = "question"
 
-LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
+LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"]
 
 mmlu_pro_prompt_consistency_rate = prompt_consistency_rate
 mmlu_pro_robustness_doc_to_text = robustness_doc_to_text
@@ -128,6 +128,39 @@ def no_answer_robustness_process_docs(
         return new_batched_docs
 
     return doc.map(process, batched=True)
+
+
+def add_no_answer_robustness_process_docs(
+    doc: Dataset,
+    dataset_specific_preprocess: callable = None,
+) -> Dataset:
+    try:
+        with open(TEMPLATE_FILE_PATH) as f:
+            prompt_template = json.load(f)["add_no_answer_robustness"]
+            prompt = prompt_template["prompt"]
+            options_format = prompt_template.get("options_format", None)
+    except FileNotFoundError:
+        eval_logger.error("Prompt templates not found")
+        sys.exit()
+
+    if dataset_specific_preprocess is not None:
+        doc = dataset_specific_preprocess(doc)
+
+    def process(datapoint):
+        datapoint["prompt"] = prompt
+        if options_format is not None:
+            datapoint["options_format"] = options_format
+        ans_ind = datapoint["answer_index"]
+        options = datapoint["options"]
+        random_index = np.random.randint(0, len(options))
+        options.insert(random_index, "None of the answers is correct.")
+        if random_index <= ans_ind:
+            ans_ind += 1
+        datapoint["answer_index"] = ans_ind
+        datapoint["answer"] = LABELS[ans_ind]
+        return datapoint
+
+    return doc.map(process)
 
 
 def binary_robustness_doc_to_text(doc: Dataset) -> str:
