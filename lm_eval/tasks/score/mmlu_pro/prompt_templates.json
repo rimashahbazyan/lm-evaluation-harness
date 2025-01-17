@@ -24,6 +24,10 @@
         "options_format": "\n{letter}: {option}"
     },
 
+    "generative":{
+        "prompt": "Calculate the answer to this {category} problem.\nProblem: {question}\nConclude your answer with:\nThe final answer is: $\\boxed{{answer}}$\nwhere [answer] is just the final number or expression that solves the problem."
+    },
+
     "prompt_robustness": [
             {
                 "prompt": "{question}{options}\nExamine the question and choose the correct answer from the options 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I' or 'J'. End your answer with:\nThe best answer is [the_answer_letter].\nwhere the [the_answer_letter] is a letter from A to J.",
